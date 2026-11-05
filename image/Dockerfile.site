@@ -1,0 +1,12 @@
+# 離線版：從預先準備好的 site-packages（torch/torchvision 已裝好）建映像，
+# 適用於對外頻寬很慢、不想在 build 時 pip 下載數 GB 的情況。
+# 先在同架構的機器上準備 ./site：
+#   pip download torch==2.14.1 torchvision==0.29.1 --index-url https://download.pytorch.org/whl/cu130 -d wheels
+#   pip install --no-index --find-links wheels --target site torch==2.14.1 torchvision==0.29.1
+# base image 應以 digest 鎖定（FROM python:3.12-slim@sha256:<digest>），且 Python 小版本須與準備 ./site 的環境一致。
+FROM python:3.12-slim
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility PYTHONUNBUFFERED=1
+COPY site/ /usr/local/lib/python3.12/site-packages/
+RUN python -c "import torchvision as tv; tv.datasets.MNIST('/data', download=True); tv.datasets.MNIST('/data', train=False, download=True)"
+COPY train.py alloc.py /app/
+WORKDIR /app

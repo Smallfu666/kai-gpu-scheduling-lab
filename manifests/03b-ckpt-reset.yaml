@@ -1,0 +1,14 @@
+# 實驗 3b 重跑前：清掉 Node-B 上 hostPath 裡的舊 checkpoint，否則新的 alice-train 會直接從上次的 epoch 續跑。
+# <node-b> 換成實際節點名稱（與 03b-reclaim-ckpt.yaml 相同）。不需要 GPU，所以用預設排程器。
+apiVersion: v1
+kind: Pod
+metadata: {name: ckpt-reset, namespace: lab, labels: {exp: exp3b-reset}}
+spec:
+  restartPolicy: Never
+  nodeSelector: {kubernetes.io/hostname: <node-b>}
+  containers:
+  - name: main
+    image: busybox:1.36
+    command: ["sh","-c","rm -rf /ckpt/alice-train && ls -la /ckpt"]
+    volumeMounts: [{name: ckpt, mountPath: /ckpt}]
+  volumes: [{name: ckpt, hostPath: {path: /var/tmp/lab-ckpt, type: DirectoryOrCreate}}]

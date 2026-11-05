@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# gpu-submit：使用者送 GPU 工作的最簡介面（包一層 kubectl，產生 KAI 用的 Job）
+#
+#   gpu-submit [-q 佇列] [-g GPU數] [-t a4500|gb10|3060|any] [-f 比例] [-i 映像] [-n 名稱] [-w 工作目錄（hostPath）] [--dry-run] -- 指令...
+#
+# 例：
+#   gpu-submit -t a4500 -- python /app/train.py                    # 一張 A4500
+#   gpu-submit -f 0.5 -t a4500 -- python /app/alloc.py             # 半張（HamiCore 會限制記憶體）
+#   gpu-submit -g 2 -t a4500 -- python /app/train.py               # 2 個 pod 各 1 卡、gang 一起開始
+#   gpu-submit -t any -i myimage:tag -- bash -c "nvidia-smi; sleep 60"
+#
+# 預設佇列 = $GPU_QUEUE 或 $USER；namespace = $GPU_NS 或 lab；映像 = $GPU_IMAGE 或 example/torch:cu130。
+set -euo pipefail
+q=${GPU_QUEUE:-$USER}; ns=${GPU_NS:-lab}; g=1; t=any; f=""; img=${GPU_IMAGE:-example/torch:cu130}; name=""; wd=""; dry=0
+while [ $# -gt 0 ]; do case $1 in
+  -q) q=$2; shift 2;; -g) g=$2; shift 2;; -t) t=$2; shift 2;; -f) f=$2; shift 2;;
+  -i) img=$2; shift 2;; -n) name=$2; shift 2;; -w) wd=$2; shift 2;; --dry-run) dry=1; shift;;
+  --) shift; break;; -h|--help) sed -n '2,12p' "$0"; exit 0;; *) echo "未知參數 $1" >&2; exit 2;; esac; done
+[ $# -gt 0 ] || { echo "要給指令：gpu-submit ... -- <cmd>" >&2; exit 2; }
+case $t in
+  a4500) sel='nvidia.com/gpu.product: NVIDIA-RTX-A4500';; gb10) sel='nvidia.com/gpu.product: NVIDIA-GB10';;
+  3060) sel='nvidia.com/gpu.product: NVIDIA-GeForce-RTX-3060';; any) sel='';; *) echo "未知卡型 $t" >&2; exit 2;; esac
+# 預設名稱加隨機尾碼，同一秒送多個工作也不會撞名
+name=${name:-$q-$(date +%m%d-%H%M%S)-$(python3 -c 'import secrets; print(secrets.token_hex(3))')}
+# 直接序列化 argv，含換行的單一參數（例如 bash -c 的多行腳本）不會被拆開
+cmd=$(python3 -c 'import sys,json; print(json.dumps(sys.argv[1:]))' "$@")
+if [ -n "$f" ]; then res=""; ann="gpu-fraction: \"$f\""; g=1; else res="resources: {limits: {nvidia.com/gpu: 1}}"; ann=""; fi
+gang=""; [ "$g" -gt 1 ] && gang="kai.scheduler/batch-min-member: \"$g\""
+vol=""; mnt=""; [ -n "$wd" ] && { vol="volumes: [{name: work, hostPath: {path: $wd, type: DirectoryOrCreate}}]"; mnt="volumeMounts: [{name: work, mountPath: /work}]"; }
+yaml=$(cat <<YAML
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: $name
+  namespace: $ns
+  labels: {gpu-submit: "true", owner: "$q"}
+  annotations: {${gang}}
+spec:
+  parallelism: $g
+  completions: $g
+  backoffLimit: 5          # 被 KAI reclaim 會算一次失敗；程式要自己存 checkpoint 才能續跑
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {kai.scheduler/queue: "$q", gpu-submit: "true", owner: "$q"}
+      annotations: {${ann}}
+    spec:
+      schedulerName: kai-scheduler
+      runtimeClassName: nvidia
+      restartPolicy: Never
+      nodeSelector: {${sel}}
+      containers:
+      - name: main
+        image: $img
+        command: $cmd
+        ${res}
+        ${mnt}
+      ${vol}
+YAML
+)
+if [ $dry = 1 ]; then printf "%s\n" "$yaml"; exit 0; fi
+# 用 create 而不是 apply：同名 Job 已存在時直接報錯，不會靜默合併成同一個 Job
+printf "%s\n" "$yaml" | kubectl create -f -
+echo "已送出 $ns/$name（佇列 $q）。看狀態：gpu-status；看輸出：kubectl -n $ns logs -f job/$name；取消：kubectl -n $ns delete job $name"

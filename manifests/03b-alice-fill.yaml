@@ -1,0 +1,81 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alice-fill-1
+  namespace: lab
+  labels: {exp: exp3b, owner: alice}
+spec:
+  backoffLimit: 0
+  podFailurePolicy:
+    rules:
+    - action: Ignore            # 被 KAI 搶占（DisruptionTarget）不算失敗，Job 會重建 pod 重新排隊
+      onPodConditions:
+      - type: DisruptionTarget
+  template:
+    metadata:
+      labels: {kai.scheduler/queue: alice, exp: exp3b, owner: alice}
+    spec:
+      schedulerName: kai-scheduler
+      runtimeClassName: nvidia
+      restartPolicy: Never
+      containers:
+      - name: main
+        image: nvidia/cuda:12.8.1-base-ubuntu22.04
+        command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; sleep 3600"]
+        resources:
+          limits: {nvidia.com/gpu: 1}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alice-fill-2
+  namespace: lab
+  labels: {exp: exp3b, owner: alice}
+spec:
+  backoffLimit: 0
+  podFailurePolicy:
+    rules:
+    - action: Ignore            # 被 KAI 搶占（DisruptionTarget）不算失敗，Job 會重建 pod 重新排隊
+      onPodConditions:
+      - type: DisruptionTarget
+  template:
+    metadata:
+      labels: {kai.scheduler/queue: alice, exp: exp3b, owner: alice}
+    spec:
+      schedulerName: kai-scheduler
+      runtimeClassName: nvidia
+      restartPolicy: Never
+      containers:
+      - name: main
+        image: nvidia/cuda:12.8.1-base-ubuntu22.04
+        command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; sleep 3600"]
+        resources:
+          limits: {nvidia.com/gpu: 1}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alice-fill-3
+  namespace: lab
+  labels: {exp: exp3b, owner: alice}
+spec:
+  backoffLimit: 0
+  podFailurePolicy:
+    rules:
+    - action: Ignore            # 被 KAI 搶占（DisruptionTarget）不算失敗，Job 會重建 pod 重新排隊
+      onPodConditions:
+      - type: DisruptionTarget
+  template:
+    metadata:
+      labels: {kai.scheduler/queue: alice, exp: exp3b, owner: alice}
+    spec:
+      schedulerName: kai-scheduler
+      runtimeClassName: nvidia
+      restartPolicy: Never
+      containers:
+      - name: main
+        image: nvidia/cuda:12.8.1-base-ubuntu22.04
+        command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; sleep 3600"]
+        resources:
+          limits: {nvidia.com/gpu: 1}

@@ -1,0 +1,46 @@
+# 模擬一個小團隊：一個 parent queue（整個團隊），三位使用者各一個 leaf queue
+# GPU：quota 1（保證一張），limit -1（可借用閒置卡，沒上限）；over-quota 以 overQuotaWeight 平分
+# CPU/記憶體不限（-1），只管 GPU
+apiVersion: scheduling.run.ai/v2
+kind: Queue
+metadata:
+  name: lab
+spec:
+  displayName: "team"
+  resources:
+    gpu:    {quota: -1, limit: -1, overQuotaWeight: 1}
+    cpu:    {quota: -1, limit: -1, overQuotaWeight: 1}
+    memory: {quota: -1, limit: -1, overQuotaWeight: 1}
+---
+apiVersion: scheduling.run.ai/v2
+kind: Queue
+metadata:
+  name: alice
+spec:
+  parentQueue: lab
+  resources:
+    gpu:    {quota: 1, limit: -1, overQuotaWeight: 1}
+    cpu:    {quota: -1, limit: -1, overQuotaWeight: 1}
+    memory: {quota: -1, limit: -1, overQuotaWeight: 1}
+---
+apiVersion: scheduling.run.ai/v2
+kind: Queue
+metadata:
+  name: bob
+spec:
+  parentQueue: lab
+  resources:
+    gpu:    {quota: 1, limit: -1, overQuotaWeight: 1}
+    cpu:    {quota: -1, limit: -1, overQuotaWeight: 1}
+    memory: {quota: -1, limit: -1, overQuotaWeight: 1}
+---
+apiVersion: scheduling.run.ai/v2
+kind: Queue
+metadata:
+  name: carol
+spec:
+  parentQueue: lab
+  resources:
+    gpu:    {quota: 1, limit: -1, overQuotaWeight: 1}
+    cpu:    {quota: -1, limit: -1, overQuotaWeight: 1}
+    memory: {quota: -1, limit: -1, overQuotaWeight: 1}

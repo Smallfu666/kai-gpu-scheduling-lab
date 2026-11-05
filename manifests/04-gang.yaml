@@ -1,0 +1,28 @@
+# Gang：2 個 pod 各要 1 張 A4500（叢集只有兩台各一張，所以一定跨節點），要嘛一起開始、要嘛都不開始
+# 先 apply 04-blocker.yaml 並等它 Running，再 apply 本檔；否則 gang 可能先拿到兩張卡，觀察不到整組 Pending
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gang-2xa4500
+  namespace: lab
+  labels: {exp: exp4}
+  annotations:
+    kai.scheduler/batch-min-member: "2"
+spec:
+  parallelism: 2
+  completions: 2
+  backoffLimit: 0
+  template:
+    metadata:
+      labels: {kai.scheduler/queue: alice, exp: exp4}
+    spec:
+      schedulerName: kai-scheduler
+      runtimeClassName: nvidia
+      restartPolicy: Never
+      nodeSelector: {nvidia.com/gpu.product: NVIDIA-RTX-A4500}
+      containers:
+      - name: main
+        image: nvidia/cuda:12.8.1-base-ubuntu22.04
+        command: ["bash","-c","date +%T.%N; hostname; nvidia-smi --query-gpu=name --format=csv,noheader; sleep 60"]
+        resources:
+          limits: {nvidia.com/gpu: 1}

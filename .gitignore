@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+# Dockerfile.site 的建置輸入（預先準備的 site-packages / wheels）
+image/site/
+image/wheels/
+# 實驗輸出與本機設定
+logs/
+*.log
+*.tar
+kubeconfig*
+*.env

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# gpu-status：看各人佇列用量、排隊中的工作與原因、各節點 GPU 使用
+ns=${GPU_NS:-lab}
+echo "== 佇列（quota=保證、ALLOC=正在用、REQ=要求中）"
+kubectl get queues -o custom-columns='QUEUE:.metadata.name,PARENT:.spec.parentQueue,GPU_QUOTA:.spec.resources.gpu.quota,GPU_LIMIT:.spec.resources.gpu.limit,ALLOC:.status.allocated.nvidia\.com/gpu,REQ:.status.requested.nvidia\.com/gpu'
+echo; echo "== 工作（$ns）"
+kubectl -n "$ns" get pods -o custom-columns='POD:.metadata.name,QUEUE:.metadata.labels.kai\.scheduler/queue,STATUS:.status.phase,NODE:.spec.nodeName,FRACTION:.metadata.annotations.gpu-fraction,AGE:.metadata.creationTimestamp'
+pend=$(kubectl -n "$ns" get pods --field-selector=status.phase=Pending -o name)
+if [ -n "$pend" ]; then echo; echo "== 排隊原因"; for p in $pend; do
+  echo "$p: $(kubectl -n "$ns" get events --field-selector involvedObject.name=${p#pod/},reason=Unschedulable -o jsonpath='{.items[-1:].message}' | tr '\n' ' ' | cut -c1-200)"; done; fi
+echo; echo "== 節點 GPU"
+for n in $(kubectl get nodes -o name); do
+  n=${n#node/}
+  prod=$(kubectl get node "$n" -o jsonpath='{.metadata.labels.nvidia\.com/gpu\.product}')
+  alloc=$(kubectl get node "$n" -o jsonpath='{.status.allocatable.nvidia\.com/gpu}')
+  used=$(kubectl get pods -A --field-selector spec.nodeName="$n",status.phase=Running -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.spec.containers[*].resources.limits.nvidia\.com/gpu}{" "}{.metadata.annotations.gpu-fraction}{"\n"}{end}' | awk '$1!="kai-resource-reservation"{s+=$2+$3} END{print s+0}')  # 分卡的 reservation pod 不重複計
+  printf "%-14s %-26s 已用 %s / %s\n" "$n" "$prod" "$used" "$alloc"
+done

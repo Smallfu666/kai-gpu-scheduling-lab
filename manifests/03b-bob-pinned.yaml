@@ -1,0 +1,15 @@
+# 實驗 3b：bob 送一個指定 Node-B 的工作，觸發對 alice 訓練的 reclaim。
+# <node-b> 換成實際節點名稱（kubectl get nodes）。
+apiVersion: v1
+kind: Pod
+metadata: {name: bob-pinned, namespace: lab, labels: {kai.scheduler/queue: bob, exp: exp3b}}
+spec:
+  schedulerName: kai-scheduler
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector: {kubernetes.io/hostname: <node-b>}
+  containers:
+  - name: main
+    image: nvidia/cuda:12.8.1-base-ubuntu22.04
+    command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; sleep 45"]
+    resources: {limits: {nvidia.com/gpu: 1}}

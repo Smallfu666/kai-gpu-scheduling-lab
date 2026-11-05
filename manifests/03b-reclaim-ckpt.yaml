@@ -1,0 +1,27 @@
+# 實驗 3b：被 reclaim 的訓練如何續跑
+# alice 的訓練 Job：checkpoint 存在節點本機 hostPath，所以 固定在 Node-B（<node-b> 換成實際節點名稱）（沒有共享儲存時的權宜作法）
+# backoffLimit: 5 —— KAI 搶占是直接刪 pod，pod 沒有 DisruptionTarget condition，podFailurePolicy Ignore 不會生效，會算一次失敗
+apiVersion: batch/v1
+kind: Job
+metadata: {name: alice-train, namespace: lab, labels: {exp: exp3b}}
+spec:
+  backoffLimit: 5
+  template:
+    metadata: {labels: {kai.scheduler/queue: alice, exp: exp3b}}
+    spec:
+      schedulerName: kai-scheduler
+      runtimeClassName: nvidia
+      restartPolicy: Never
+      nodeSelector: {kubernetes.io/hostname: <node-b>}
+      containers:
+      - name: train
+        image: example/torch:cu130
+        imagePullPolicy: IfNotPresent
+        command: ["python","/app/train.py"]
+        env:
+        - {name: EPOCHS, value: "10"}
+        - {name: EPOCH_SLEEP, value: "8"}
+        - {name: CKPT_DIR, value: /ckpt/alice-train}
+        resources: {limits: {nvidia.com/gpu: 1}}
+        volumeMounts: [{name: ckpt, mountPath: /ckpt}]
+      volumes: [{name: ckpt, hostPath: {path: /var/tmp/lab-ckpt, type: DirectoryOrCreate}}]

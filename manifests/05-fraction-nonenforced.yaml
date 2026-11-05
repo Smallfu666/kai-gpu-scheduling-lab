@@ -1,0 +1,38 @@
+# 實驗 5：兩個 gpu-fraction 0.5 的 pod 放在同一張 A4500 上；frac-a 故意要超過半張
+# <a4500-node> 換成其中一台 A4500 節點的名稱
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frac-a
+  namespace: lab
+  labels: {kai.scheduler/queue: bob, exp: exp5}
+  annotations: {gpu-fraction: "0.5"}
+spec:
+  schedulerName: kai-scheduler
+  restartPolicy: Never
+  nodeSelector: {kubernetes.io/hostname: <a4500-node>}
+  containers:
+  - name: main
+    image: example/torch:cu130
+    imagePullPolicy: IfNotPresent
+    command: ["bash","-c","nvidia-smi --query-gpu=memory.total,memory.used --format=csv; python /app/alloc.py"]
+    env: [{name: TARGET_MIB, value: "16384"}, {name: STEP_MIB, value: "1024"}, {name: HOLD_S, value: "90"}]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frac-b
+  namespace: lab
+  labels: {kai.scheduler/queue: bob, exp: exp5}
+  annotations: {gpu-fraction: "0.5"}
+spec:
+  schedulerName: kai-scheduler
+  restartPolicy: Never
+  nodeSelector: {kubernetes.io/hostname: <a4500-node>}
+  containers:
+  - name: main
+    image: example/torch:cu130
+    imagePullPolicy: IfNotPresent
+    command: ["bash","-c","nvidia-smi --query-gpu=memory.total,memory.used --format=csv; python /app/alloc.py"]
+    env: [{name: TARGET_MIB, value: "4096"}, {name: STEP_MIB, value: "1024"}, {name: HOLD_S, value: "90"}]

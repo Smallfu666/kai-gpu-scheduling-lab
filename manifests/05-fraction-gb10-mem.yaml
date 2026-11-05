@@ -1,0 +1,19 @@
+# 實驗 5：GB10 上以 gpu-memory 指定記憶體量（需先補 nvidia.com/gpu.memory label，見 README 第 6 節問題 4）
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frac-gb10
+  namespace: lab
+  labels: {kai.scheduler/queue: bob, exp: exp5}
+  annotations: {gpu-memory: "8192"}
+spec:
+  schedulerName: kai-scheduler
+  restartPolicy: Never
+  nodeSelector: {nvidia.com/gpu.product: NVIDIA-GB10}
+  containers:
+  - name: main
+    image: example/torch:cu130
+    imagePullPolicy: IfNotPresent
+    command: ["bash","-c","nvidia-smi --query-gpu=memory.total,memory.used --format=csv; python /app/alloc.py"]
+    env: [{name: TARGET_MIB, value: "16384"}, {name: STEP_MIB, value: "1024"}, {name: HOLD_S, value: "90"}]

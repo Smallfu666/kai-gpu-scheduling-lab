@@ -1,0 +1,110 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: a4500-1
+  namespace: lab
+  labels:
+    kai.scheduler/queue: default-queue
+    exp: "exp1"
+spec:
+  schedulerName: kai-scheduler
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector:
+    nvidia.com/gpu.product: NVIDIA-RTX-A4500
+  containers:
+  - name: main
+    image: nvidia/cuda:12.8.1-base-ubuntu22.04
+    command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; hostname; sleep 150"]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: a4500-2
+  namespace: lab
+  labels:
+    kai.scheduler/queue: default-queue
+    exp: "exp1"
+spec:
+  schedulerName: kai-scheduler
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector:
+    nvidia.com/gpu.product: NVIDIA-RTX-A4500
+  containers:
+  - name: main
+    image: nvidia/cuda:12.8.1-base-ubuntu22.04
+    command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; hostname; sleep 150"]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: a4500-3
+  namespace: lab
+  labels:
+    kai.scheduler/queue: default-queue
+    exp: "exp1"
+spec:
+  schedulerName: kai-scheduler
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector:
+    nvidia.com/gpu.product: NVIDIA-RTX-A4500
+  containers:
+  - name: main
+    image: nvidia/cuda:12.8.1-base-ubuntu22.04
+    command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; hostname; sleep 150"]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gb10-1
+  namespace: lab
+  labels:
+    kai.scheduler/queue: default-queue
+    exp: "exp1"
+spec:
+  schedulerName: kai-scheduler
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector:
+    nvidia.com/gpu.product: NVIDIA-GB10
+  containers:
+  - name: main
+    image: nvidia/cuda:12.8.1-base-ubuntu22.04
+    command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; hostname; sleep 150"]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gb10-2
+  namespace: lab
+  labels:
+    kai.scheduler/queue: default-queue
+    exp: "exp1"
+spec:
+  schedulerName: kai-scheduler
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector:
+    nvidia.com/gpu.product: NVIDIA-GB10
+  containers:
+  - name: main
+    image: nvidia/cuda:12.8.1-base-ubuntu22.04
+    command: ["bash","-c","nvidia-smi --query-gpu=name --format=csv,noheader; hostname; sleep 150"]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
